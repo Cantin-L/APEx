@@ -1,6 +1,6 @@
 #!/bin/bash
 #author : R. Batelier & C.Liottard
-#version : beta
+#version : beta 1.0
 #date maj: 20 / 06 / 2023
 clear
 
@@ -154,7 +154,7 @@ cat <<EOF > rapport_html_temp.html
      <h1 style="color:#1863c2";>Rapport du Scan</h1>
      <h2 style="color:#1863c2;font-family: Pattanakarn";>Cible: $ip</h2>
      </br></br></br></br></br></br></br></br></br></br></br></br></br></br>
-     <p>Date: $date - Version: 1.0</p>
+     <p>Date: $date - Version: beta v0.1</p>
   </center>
   
   <h2>Information de la machine cible:</h2>
