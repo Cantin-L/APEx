@@ -1,5 +1,5 @@
 #!/bin/bash
-
+#author : R. Batelier & C.Liottard
 clear
 
 # Variables
