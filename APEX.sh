@@ -1,5 +1,6 @@
 #!/bin/bash
 #author : R. Batelier & C.Liottard
+#version : béta
 clear
 
 # Variables
