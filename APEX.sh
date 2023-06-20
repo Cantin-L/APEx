@@ -1,6 +1,7 @@
 #!/bin/bash
 #author : R. Batelier & C.Liottard
-#version : béta
+#version : beta
+#date maj: 20 / 06 / 2023
 clear
 
 # Variables
