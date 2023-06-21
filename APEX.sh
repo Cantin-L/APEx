@@ -32,7 +32,7 @@ echo ""
 echo "+-----------------------------------------------------------+"
 echo ""
 
-# Exécuter nmap et rediriger la sortie vers un fichier temporaire
+# Exécuter NMAP et rediriger la sortie vers un fichier temporaire
 echo "			    NMAP"
 nmap -sS -sV -T4 -p 80,443 "$ip" > rapport_nmap_temp.txt
 
@@ -40,7 +40,7 @@ echo ""
 echo "+-----------------------------------------------------------+"
 echo ""
 
-# Exécuter nmap et rediriger la sortie vers un fichier temporaire
+# Exécuter VULNERS et rediriger la sortie vers un fichier temporaire
 echo "			   VULNERS"
 nmap -sV --script vulners "$ip" > rapport_vulners_temp.txt
 
@@ -48,9 +48,9 @@ echo ""
 echo "+-----------------------------------------------------------+"
 echo ""
 
-# Exécuter nmap et rediriger la sortie vers un fichier temporaire
+# Exécuter FUFF et rediriger la sortie vers un fichier temporaire
 echo "			    FUFF"
-#ffuf -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -recursion -u http://"$ip"/FUZZ
+ffuf -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -u http://"$ip"/FUZZ > rapport_fuff_temp.txt # -recursion
 
 echo ""
 echo "+-----------------------------------------------------------+"
@@ -60,8 +60,8 @@ echo ""
 echo "			   WPSCAN"
 wpscan --url "$ip" -o rapport_wpscan_temp.txt
 grep "Scan Aborted" rapport_wpscan_temp.txt > rapport_wpscan_ScanAborted.txt
-ttest="Scan Aborted: The remote website is up, but does not seem to be running WordPress."
-if [ "$ttest" = "Scan Aborted: The remote website is up, but does not seem to be running WordPress." ]; then
+wpscanok="Scan Aborted: The remote website is up, but does not seem to be running WordPress."
+if [ "$wpscanok" = "Scan Aborted: The remote website is up, but does not seem to be running WordPress." ]; then
   wpscan="Le site n'est pas un WordPress."
 else
   wpscan="Scan: "
@@ -71,7 +71,7 @@ echo ""
 echo "+-----------------------------------------------------------+"
 echo ""
 
-# Exécuter nmap et rediriger la sortie vers un fichier temporaire
+# Exécuter RAPIDSCAN et rediriger la sortie vers un fichier temporaire
 echo "			  RAPIDSCAN"
 #python3 rapidscan.py --skip nmap "$ip" > rapport_rapidscan_temp.txt
 
@@ -79,9 +79,25 @@ echo ""
 echo "+-----------------------------------------------------------+"
 echo ""
 
-# Exécuter nmap et rediriger la sortie vers un fichier temporaire
+# Exécuter NSLOOKUP et rediriger la sortie vers un fichier temporaire
 echo "			  NSLOOKUP"
 nslookup "$ip" > rapport_nslookup_temp.txt
+
+echo ""
+echo "+-----------------------------------------------------------+"
+echo ""
+
+# Exécuter LFIMAP et rediriger la sortie vers un fichier temporaire
+echo "			   LFIMAP"
+python3 LFImap/lfimap.py -U "http://"$ip"/docs/view.php?file=PWN" -a --log ../rapport_lfimap_temp.txt
+
+echo ""
+echo "+-----------------------------------------------------------+"
+echo ""
+
+# Exécuter SQLMAP et rediriger la sortie vers un fichier temporaire
+echo "			   SQLMAP"
+#sqlmap -r request.txt --batch --dump > rapport_sqlmap_temp.txt
 
 echo ""
 echo "+-----------------------------------------------------------+"
@@ -154,7 +170,7 @@ cat <<EOF > rapport_html_temp.html
      <h1 style="color:#1863c2";>Rapport du Scan</h1>
      <h2 style="color:#1863c2;font-family: Pattanakarn";>Cible: $ip</h2>
      </br></br></br></br></br></br></br></br></br></br></br></br></br></br>
-     <p>Date: $date - Version: beta v0.1</p>
+     <p>Date: $date - Version: beta-v0.1</p>
   </center>
   
   <h2>Information de la machine cible:</h2>
@@ -175,11 +191,17 @@ cat <<EOF > rapport_html_temp.html
       </tr>
     </thead>
     <tbody>
-    $(grep -E "^[0-9]+/tcp\s+open\s+.+" rapport_nmap_temp.txt | awk '/^[0-9]/ {print "<tr><td>" $1 "</td><td>" $3 "</td><td>" $4; for(i=5; i<=NF; i++) printf(" %s", $i); printf("</td></tr>\n") }')
+    <p>$(grep -E "^[0-9]+/tcp\s+open\s+.+" rapport_nmap_temp.txt | awk '/^[0-9]/ {print "<tr><td>" $1 "</td><td>" $3 "</td><td>" $4; for(i=5; i<=NF; i++) printf(" %s", $i); printf("</td></tr>\n") }')</p>
   </tbody>
   </table>
   
   <h3>FUFF:</h3>
+  <p>$(grep "FUZZ: " rapport_fuff_temp.txt | grep -v -e "FUZZ: #" | grep '[a-z]' | awk -v ip=$ip '{print "http://" ip "/" $NF "</br>"}')</p>
+  
+  <h3>LFI:</h3>
+  $(sed 's/ LFI/<\/br>LFI/g' rapport_lfimap_temp.txt | grep -o "</br>LFI -> '[^']*'")
+  
+  <h3>SQLI:</h3>
   
   <h3>Exploits:</h3>
   <p>$(awk '/*EXPLOIT*/ {
@@ -232,4 +254,4 @@ EOF
 weasyprint rapport_html_temp.html rapport_apex.pdf
 
 # Supprimer les fichiers temporaires
-rm rapport_nmap_temp.txt rapport_wpscan_temp.txt rapport_wpscan_ScanAborted.txt rapport_html_temp.html rapport_nslookup_temp.txt #rapport_rapidscan_temp.txt
+rm rapport_nmap_temp.txt rapport_wpscan_temp.txt rapport_wpscan_ScanAborted.txt rapport_html_temp.html rapport_nslookup_temp.txt rapport_fuff_temp.txt rapport_lfimap_temp.txt #rapport_rapidscan_temp.txt
