@@ -3,6 +3,7 @@
 #version : beta 1.0
 #date maj: 20 / 06 / 2023
 clear
+
 # Variables
 
 date=$(date '+%d/%m/%Y')
@@ -41,7 +42,6 @@ nmap -sS -sV -T4 -p 80,443 "$ip" > rapport_nmap_temp.txt
 
 ip_nmap=$(grep -oE "([0-9]{1,3}[.]){3}[0-9]{1,3}" rapport_nmap_temp.txt)
 admac_nmap=$(grep "MAC Address:" rapport_nmap_temp.txt)
-dns_nmap=$(grep "name =" rapport_nslookup_temp.txt | awk '{print $NF}')
 time_nmap=$(tail -n1 rapport_nmap_temp.txt | grep -oE "([0-9]{1,2}[.])[0-9]{1,2}")
 tab_nmap=$(grep -E "^[0-9]+/tcp\s+open\s+.+" rapport_nmap_temp.txt | awk '/^[0-9]/ {print "<tr><td>" $1 "</td><td>" $3 "</td><td>" $4; for(i=5; i<=NF; i++) printf(" %s", $i); printf("</td></tr>\n") }')
 
@@ -52,6 +52,41 @@ echo ""
 # Exécuter VULNERS et rediriger la sortie vers un fichier temporaire
 echo "			   VULNERS"
 nmap -sV --script vulners "$ip" > rapport_vulners_temp.txt
+
+$(awk '/*EXPLOIT*/ {
+if ($3 >= 9) 
+{
+  $NF="";
+  $1=""; 
+  print "CVE: " $2 "</br>"; 
+  print "Score CVSS: <span style=\"color:red\">" $3 "</span></br>"; 
+  print "Voir plus: " $4 "</br>"; print "</br>";
+}
+else if ($3 < 9 && $3 >= 7)
+{
+  $NF="";
+  $1=""; 
+  print "CVE: " $2 "</br>"; 
+  print "Score CVSS: <span style=\"color:orange\">" $3 "</span></br>"; 
+  print "Voir plus: " $4 "</br>"; print "</br>";
+}
+else if ($3 < 7 && $3 >= 4)
+{
+  $NF="";
+  $1=""; 
+  print "CVE: " $2 "</br>"; 
+  print "Score CVSS: <span style=\"color:yellow\">" $3 "</span></br>"; 
+  print "Voir plus: " $4 "</br>"; print "</br>";
+}
+else 
+{
+  $NF="";
+  $1=""; 
+  print "CVE: " $2 "</br>"; 
+  print "Score CVSS: <span style=\"color:green\">" $3 "</span></br>"; 
+  print "Voir plus: " $4 "</br>"; print "</br>";
+}
+}' rapport_vulners_temp.txt)
 
 echo ""
 echo "+-----------------------------------------------------------+"
@@ -93,6 +128,8 @@ echo ""
 # Exécuter NSLOOKUP et rediriger la sortie vers un fichier temporaire
 echo "			  NSLOOKUP"
 nslookup "$ip" > rapport_nslookup_temp.txt
+
+dns_nslookup=$(grep "name =" rapport_nslookup_temp.txt | awk '{print $NF}')
 
 echo ""
 echo "+-----------------------------------------------------------+"
@@ -205,7 +242,7 @@ cat <<EOF > rapport_html_temp.html
   <h2>Information de la machine cible:</h2>
   <p>IP Address: $ip_nmap</p>
   <p>$admac_nmap</p>
-  <p>DNS: $dns_nmap</p>
+  <p>DNS: $dns_nslookup</p>
   
   <h2>Nmap</h2>
   <h3>Le temps du scan:</h3>
@@ -240,41 +277,7 @@ cat <<EOF > rapport_html_temp.html
   <p></p>
   
   <h3>Exploits:</h3>
-  <p>$(awk '/*EXPLOIT*/ {
-  if ($3 >= 9) 
-  {
-    $NF="";
-    $1=""; 
-    print "CVE: " $2 "</br>"; 
-    print "Score CVSS: <span style=\"color:red\">" $3 "</span></br>"; 
-    print "Voir plus: " $4 "</br>"; print "</br>";
-  }
-  else if ($3 < 9 && $3 >= 7)
-  {
-    $NF="";
-    $1=""; 
-    print "CVE: " $2 "</br>"; 
-    print "Score CVSS: <span style=\"color:orange\">" $3 "</span></br>"; 
-    print "Voir plus: " $4 "</br>"; print "</br>";
-  }
-  else if ($3 < 7 && $3 >= 4)
-  {
-    $NF="";
-    $1=""; 
-    print "CVE: " $2 "</br>"; 
-    print "Score CVSS: <span style=\"color:yellow\">" $3 "</span></br>"; 
-    print "Voir plus: " $4 "</br>"; print "</br>";
-  }
-  else 
-  {
-    $NF="";
-    $1=""; 
-    print "CVE: " $2 "</br>"; 
-    print "Score CVSS: <span style=\"color:green\">" $3 "</span></br>"; 
-    print "Voir plus: " $4 "</br>"; print "</br>";
-  }
-  }' rapport_vulners_temp.txt)
-  </p>
+  <p>$vulners</p>
   
   <h2>Wpscan</h2>
   <p>$wpscan</p>
