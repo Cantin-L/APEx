@@ -3,8 +3,11 @@
 #version : beta 1.0
 #date maj: 20 / 06 / 2023
 clear
-
 # Variables
+
+date=$(date '+%d/%m/%Y')
+version="beta-v0.2"
+
 echo -e "\033[1m+-----------------------------------------------------------+\033[0m"
 echo -e "\033[1m|        .o.        ooooooooo.    oooooooooo  oooo    oooo  |\033[0m"
 echo -e "\033[1m|       .888.        888    Y88.   88      8    88.   88    |\033[0m"
@@ -36,6 +39,12 @@ echo ""
 echo "			    NMAP"
 nmap -sS -sV -T4 -p 80,443 "$ip" > rapport_nmap_temp.txt
 
+ip_nmap=$(grep -oE "([0-9]{1,3}[.]){3}[0-9]{1,3}" rapport_nmap_temp.txt)
+admac_nmap=$(grep "MAC Address:" rapport_nmap_temp.txt)
+dns_nmap=$(grep "name =" rapport_nslookup_temp.txt | awk '{print $NF}')
+time_nmap=$(tail -n1 rapport_nmap_temp.txt | grep -oE "([0-9]{1,2}[.])[0-9]{1,2}")
+tab_nmap=$(grep -E "^[0-9]+/tcp\s+open\s+.+" rapport_nmap_temp.txt | awk '/^[0-9]/ {print "<tr><td>" $1 "</td><td>" $3 "</td><td>" $4; for(i=5; i<=NF; i++) printf(" %s", $i); printf("</td></tr>\n") }')
+
 echo ""
 echo "+-----------------------------------------------------------+"
 echo ""
@@ -50,7 +59,9 @@ echo ""
 
 # Exécuter FUFF et rediriger la sortie vers un fichier temporaire
 echo "			    FUFF"
-ffuf -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -u http://"$ip"/FUZZ > rapport_fuff_temp.txt # -recursion
+ffuf -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -u http://$ip/FUZZ > rapport_fuff_temp.txt # -recursion https://apexscan.000webhostapp.com
+
+fuffp1=$(grep "FUZZ: " rapport_fuff_temp.txt | grep -v -e "FUZZ: #" | grep '[a-z]' | awk -v ip=$ip '{print "http://" ip "/" $NF "</br>"}')
 
 echo ""
 echo "+-----------------------------------------------------------+"
@@ -59,9 +70,9 @@ echo ""
 # Exécuter WPSCAN et rediriger la sortie vers un fichier temporaire
 echo "			   WPSCAN"
 wpscan --url "$ip" -o rapport_wpscan_temp.txt
-grep "Scan Aborted" rapport_wpscan_temp.txt > rapport_wpscan_ScanAborted.txt
-wpscanok="Scan Aborted: The remote website is up, but does not seem to be running WordPress."
-if [ "$wpscanok" = "Scan Aborted: The remote website is up, but does not seem to be running WordPress." ]; then
+wpscanok=$(grep "Scan Aborted" rapport_wpscan_temp.txt)
+wpscanon="Scan Aborted: The remote website is up, but does not seem to be running WordPress."
+if [ "$wpscanok" = "$wpscanon" ]; then
   wpscan="Le site n'est pas un WordPress."
 else
   wpscan="Scan: "
@@ -89,7 +100,17 @@ echo ""
 
 # Exécuter LFIMAP et rediriger la sortie vers un fichier temporaire
 echo "			   LFIMAP"
-python3 LFImap/lfimap.py -U "http://"$ip"/docs/view.php?file=PWN" -a --log ../rapport_lfimap_temp.txt
+python3 LFImap/lfimap.py -U "http://"$ip"/docs/view.php?file=PWN" -a --log rapport_lfimap_temp.txt # https://apexscan.000webhostapp.com/article.php?file=PWN
+
+lfi=$(grep -o "LFI -> '[^']*'" LFImap/rapport_lfimap_temp.txt | head -n 1 | awk '{print $1}')
+
+if [ "$lfi" = "LFI" ]; then
+  lfip1="Le site contient une LFI:</br>Les failles LFI ou local File Inclusion sont des ...</br></br>Traces:";
+  lfip2=$(grep -o "LFI -> '[^']*'" LFImap/rapport_lfimap_temp.txt | awk '{print "<p style=\"font-size:12px\">"$1 " " $2 " " $3 "</p>"}');
+  }
+else
+  lfi1="Le site ne contient pas de LFI.";
+fi
 
 echo ""
 echo "+-----------------------------------------------------------+"
@@ -97,14 +118,22 @@ echo ""
 
 # Exécuter SQLMAP et rediriger la sortie vers un fichier temporaire
 echo "			   SQLMAP"
-#sqlmap -r request.txt --batch --dump > rapport_sqlmap_temp.txt
+sqlmap -u "http://$ip/photo_gallery/login.php" --batch --forms --dump --crawl=2 > rapport_sqlmap_temp.txt # https://apexscan.000webhostapp.com/ <---> 192.168.5.129(TP Hacking 1)
+
+sql=$(grep -o "SQL injection vulnerability has already been detected" rapport_sqlmap_temp.txt)
+
+if [ "$sql" = "SQL injection vulnerability has already been detected" ]; then
+  sqlp1="Le site contient une SQLi:</br>Les injections SQL sont ...</br></br>Traces:";
+  sqli1=$(grep "entries]" rapport_sqlmap_temp.txt | head -n 1 | awk '/\[.* entries\]/{num = substr($0, 2, 1); print num + num}');
+  sqli=$(grep -A $sqli1 "Table: users" rapport_sqlmap_temp.txt | awk '{print $3 "  " $4 "  " $5 "  " $6 "  " $7 "</br>"}');
+else
+  sqlp1="Le site ne contient pas de faille SQLi.";
+fi
 
 echo ""
 echo "+-----------------------------------------------------------+"
 echo ""
 echo "Fin d'APEX Scan"
-
-date=$(date '+%d/%m/%Y')
 
 # Convertir le fichier temporaire en HTML en utilisant un modèle HTML personnalisé
 cat <<EOF > rapport_html_temp.html
@@ -170,17 +199,17 @@ cat <<EOF > rapport_html_temp.html
      <h1 style="color:#1863c2";>Rapport du Scan</h1>
      <h2 style="color:#1863c2;font-family: Pattanakarn";>Cible: $ip</h2>
      </br></br></br></br></br></br></br></br></br></br></br></br></br></br>
-     <p>Date: $date - Version: beta-v0.1</p>
+     <p>Date: $date - Version: $version</p>
   </center>
   
   <h2>Information de la machine cible:</h2>
-  <p>IP Address: $(grep -oE "([0-9]{1,3}[.]){3}[0-9]{1,3}" rapport_nmap_temp.txt)</p>
-  <p>$(grep "MAC Address:" rapport_nmap_temp.txt)</p>
-  <p>DNS: $(grep "name =" rapport_nslookup_temp.txt | awk '{print $NF}')</p>
+  <p>IP Address: $ip_nmap</p>
+  <p>$admac_nmap</p>
+  <p>DNS: $dns_nmap</p>
   
   <h2>Nmap</h2>
   <h3>Le temps du scan:</h3>
-  <p>Durée du Nmap: $(tail -n1 rapport_nmap_temp.txt | grep -oE "([0-9]{1,2}[.])[0-9]{1,2}") secondes</p>
+  <p>Durée du Nmap: $time_nmap secondes</p>
   <h3>Résultat du scan (port ouvert/filtré):</h3>
   <table>
     <thead>
@@ -191,17 +220,24 @@ cat <<EOF > rapport_html_temp.html
       </tr>
     </thead>
     <tbody>
-    <p>$(grep -E "^[0-9]+/tcp\s+open\s+.+" rapport_nmap_temp.txt | awk '/^[0-9]/ {print "<tr><td>" $1 "</td><td>" $3 "</td><td>" $4; for(i=5; i<=NF; i++) printf(" %s", $i); printf("</td></tr>\n") }')</p>
+    <p>$tab_nmap</p>
   </tbody>
   </table>
   
   <h3>FUFF:</h3>
-  <p>$(grep "FUZZ: " rapport_fuff_temp.txt | grep -v -e "FUZZ: #" | grep '[a-z]' | awk -v ip=$ip '{print "http://" ip "/" $NF "</br>"}')</p>
+  <p>$fuffp1</p>
   
   <h3>LFI:</h3>
-  $(sed 's/ LFI/<\/br>LFI/g' rapport_lfimap_temp.txt | grep -o "</br>LFI -> '[^']*'")
+  <p>$lfip1</br>$lfip2</p>
   
   <h3>SQLI:</h3>
+  <p>$sqlp1</br>$sqli</p>
+  
+  <h3>XSS:</h3>
+  <p></p>
+  
+  <h3>IDOR:</h3>
+  <p></p>
   
   <h3>Exploits:</h3>
   <p>$(awk '/*EXPLOIT*/ {
@@ -237,13 +273,16 @@ cat <<EOF > rapport_html_temp.html
     print "Score CVSS: <span style=\"color:green\">" $3 "</span></br>"; 
     print "Voir plus: " $4 "</br>"; print "</br>";
   }
-  }' rapport_vulners_temp.txt) 
+  }' rapport_vulners_temp.txt)
   </p>
   
   <h2>Wpscan</h2>
   <p>$wpscan</p>
   
   <h2>Rapidscan</h2>
+  <p></p>
+  
+  <h2>Remédiations</h2>
   <p></p>
   
 </body>
@@ -254,4 +293,4 @@ EOF
 weasyprint rapport_html_temp.html rapport_apex.pdf
 
 # Supprimer les fichiers temporaires
-rm rapport_nmap_temp.txt rapport_wpscan_temp.txt rapport_wpscan_ScanAborted.txt rapport_html_temp.html rapport_nslookup_temp.txt rapport_fuff_temp.txt rapport_lfimap_temp.txt #rapport_rapidscan_temp.txt
+rm rapport_nmap_temp.txt rapport_wpscan_temp.txt rapport_html_temp.html rapport_nslookup_temp.txt rapport_fuff_temp.txt rapport_lfimap_temp.txt rapport_vulners_temp.txt LFImap/rapport_lfimap_temp.txt #rapport_sqlmap_temp.txt #rapport_rapidscan_temp.txt
