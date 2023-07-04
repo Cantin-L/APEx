@@ -18,6 +18,11 @@ Notre SCAN de vulnérabilité codé en BASH genère, grâce à un pannel d'outil
 Notre scan 100 % automatisé va par la suite générer un rapport PDF détaillé des vulnérabilités trouvées ainsi que les notes correspondantes aux CVSS. Le PDF redirigera également les vulnérabilités vers leur remédiation. 
 
 A la suite de notre rendu, nous pouvons prendre rendez-vous avec le client si nécessaire.
+
+
+
+
+
           _____                    _____                    _____                                  
          /\    \                  /\    \                  /\    \                 ______          
         /::\    \                /::\    \                /::\    \               |::|   |         
