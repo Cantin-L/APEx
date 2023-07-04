@@ -20,8 +20,8 @@ Notre scan 100 % automatisé va par la suite générer un rapport PDF détaillé
 A la suite de notre rendu, nous pouvons prendre rendez-vous avec le client si nécessaire.
 
 
+<rawtext>
 
-'''
           _____                    _____                    _____                                  
          /\    \                  /\    \                  /\    \                 ______          
         /::\    \                /::\    \                /::\    \               |::|   |         
@@ -45,4 +45,4 @@ A la suite de notre rendu, nous pouvons prendre rendez-vous avec le client si n�
          \/____/                                           \/____/                 ~~              
 
 
-'''
+</rawtext>
