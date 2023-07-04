@@ -21,7 +21,6 @@ A la suite de notre rendu, nous pouvons prendre rendez-vous avec le client si n√
 
 
 <rawtext>
-
           _____                    _____                    _____                                  
          /\    \                  /\    \                  /\    \                 ______          
         /::\    \                /::\    \                /::\    \               |::|   |         
@@ -43,6 +42,5 @@ A la suite de notre rendu, nous pouvons prendre rendez-vous avec le client si n√
         /:::/    /                                       \:::\____\               |::|   |         
         \::/    /                                         \::/    /               |::|___|         
          \/____/                                           \/____/                 ~~              
-
 
 </rawtext>
